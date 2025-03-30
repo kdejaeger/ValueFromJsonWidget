@@ -74,7 +74,7 @@ public class FetchDataWorker extends Worker {
     private String parseJson(String response, String jsonKey) {
         try {
             JSONObject jsonObject = new JSONObject(response);
-            return jsonObject.optString(jsonKey, "No data");
+            return jsonObject.optString(jsonKey, "?");
         } catch (Exception e) {
             Log.e(TAG, "Error parsing JSON", e);
             return "Error";

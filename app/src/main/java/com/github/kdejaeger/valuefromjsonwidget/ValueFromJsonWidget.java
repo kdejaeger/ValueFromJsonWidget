@@ -13,8 +13,8 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.Uri;
+import android.view.View;
 import android.widget.RemoteViews;
 
 import androidx.work.ExistingPeriodicWorkPolicy;
@@ -47,7 +47,7 @@ public class ValueFromJsonWidget extends AppWidgetProvider {
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         for (int appWidgetId : appWidgetIds) {
-            RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_layout);
+            var views = new RemoteViews(context.getPackageName(), R.layout.widget_layout);
 
             // Load the last known value from SharedPreferences
             var prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -64,6 +64,7 @@ public class ValueFromJsonWidget extends AppWidgetProvider {
             refreshIntent.setAction(ACTION_REFRESH);
             var refreshPendingIntent = PendingIntent.getBroadcast(context, 0, refreshIntent, FLAG_UPDATE_CURRENT | FLAG_IMMUTABLE);
             views.setOnClickPendingIntent(R.id.refresh_icon, refreshPendingIntent);
+            views.setViewVisibility(R.id.refresh_icon, View.VISIBLE);
 
             // Set up text click to open browser
             var clickUrlString = prefs.getString("clickUrl", "https://app.airgradient.com");
@@ -79,6 +80,13 @@ public class ValueFromJsonWidget extends AppWidgetProvider {
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
         if (ACTION_REFRESH.equals(intent.getAction())) {
+            var views = new RemoteViews(context.getPackageName(), com.github.kdejaeger.valuefromjsonwidget.R.layout.widget_layout);
+            views.setViewVisibility(R.id.refresh_icon, View.INVISIBLE);
+
+            var appWidgetManager = AppWidgetManager.getInstance(context);
+            var widget = new ComponentName(context, ValueFromJsonWidget.class);
+            appWidgetManager.updateAppWidget(widget, views);
+
             // Manual refresh: trigger a one-time work request to fetch new data
             var workRequest = new OneTimeWorkRequest.Builder(FetchDataWorker.class).build();
             WorkManager.getInstance(context).enqueue(workRequest);
@@ -88,9 +96,10 @@ public class ValueFromJsonWidget extends AppWidgetProvider {
     public static void updateWidget(Context context, String value) {
         var prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
 
-        RemoteViews views = new RemoteViews(context.getPackageName(), com.github.kdejaeger.valuefromjsonwidget.R.layout.widget_layout);
+        var views = new RemoteViews(context.getPackageName(), com.github.kdejaeger.valuefromjsonwidget.R.layout.widget_layout);
         views.setTextViewText(R.id.widget_text_small, prefs.getString("json_key", "pm02"));
         views.setTextViewText(R.id.widget_text, value);
+        views.setViewVisibility(R.id.refresh_icon, View.VISIBLE);
 
         // Reapply the click listeners:
         var refreshIntent = new Intent(context, ValueFromJsonWidget.class);
@@ -104,7 +113,7 @@ public class ValueFromJsonWidget extends AppWidgetProvider {
         views.setOnClickPendingIntent(R.id.widget_text, browserPendingIntent);
 
         var appWidgetManager = AppWidgetManager.getInstance(context);
-        ComponentName widget = new ComponentName(context, ValueFromJsonWidget.class);
+        var widget = new ComponentName(context, ValueFromJsonWidget.class);
         appWidgetManager.updateAppWidget(widget, views);
     }
 
